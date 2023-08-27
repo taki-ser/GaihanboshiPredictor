@@ -7,15 +7,14 @@
 
 import AVFoundation
 import UIKit
-class CameraModel: ObservableObject{
+class CameraModel {
     //    カメラセッションをclassプロパティとして定義
-    let captureSession = AVCaptureSession()
-    
+    var captureSession = AVCaptureSession()
+//    @Published var imageForPreview: UIImage?
     //    Delegateのインスタンス生成
-    private var photoCaptureDelegate = PhotoCaptureDelegate()
-    
+//    var photoCaptureDelegate: PhotoCaptureDelegate
     //    撮影関数
-    func takePicture(flashMode: Bool) {
+    func takePicture(flashMode: Bool, delegate: PhotoCaptureDelegate) {
         guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
         let photoSettings = AVCapturePhotoSettings()
         photoSettings.flashMode = .off
@@ -36,23 +35,10 @@ class CameraModel: ObservableObject{
         #endif
         
         
-        photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureDelegate)
+        photoOutput.capturePhoto(with: photoSettings, delegate: delegate)
+//        imageForPreview = photoCaptureDelegate.imageForPreview
     }
-    //    撮影関数で使用するDelegate
-    class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, ObservableObject {
-        @Published var imageForPreview: UIImage?
-        init(imageForPreview: UIImage? = nil) {
-            self.imageForPreview = imageForPreview
-        }
-        // 写真撮影後の処理を実装する
-        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-            // 写真が取得されたら、ここで処理を行う
-            if let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData){
-                print(image)
-                imageForPreview = image
-            }
-        }
-    }
+    
     //    カメラ初期設定
     func setupCamera() {
         //    シミュレータ上ではセッション設定をスキップ
@@ -91,3 +77,19 @@ class CameraModel: ObservableObject{
         }
     }
 }
+
+//    撮影関数で使用するDelegate
+class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, ObservableObject {
+    @Published var imageForPreview: UIImage?
+
+    // 写真撮影後の処理を実装する
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        // 写真が取得されたら、ここで処理を行う
+        if let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData){
+            print(image)
+            imageForPreview = image
+//            print(imageForPreview)
+        }
+    }
+}
+
