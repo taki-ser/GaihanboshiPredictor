@@ -1,6 +1,6 @@
 //
 //  CameraView.swift
-//  GaihanboshiPredictor
+//  CameraTest
 //
 //  Created by 滝瀬隆斗 on 2023/08/27.
 //
@@ -9,33 +9,44 @@ import SwiftUI
 import AVFoundation
 //    Viewの定義
 struct CameraView: View {
-    //    CameraModelインスタンスを生成
-    private let cameraModel = CameraModel()
-    private let photoCaptureDelegate: PhotoCaptureDelegate = PhotoCaptureDelegate()
-    
-    @State private var flashMode = false
-    //    撮影された写真
-    @State var previewImage: UIImage?
-//    写真プレビュー画面表示
-    @State var isPreviewPreview = false
-    
-    init() {
-//        self.photoCaptureDelegate = PhotoCaptureDelegate()
-        cameraModel.setupCamera()
-        }
+    //    カメラセッションをclassプロパティとして定義
+    let captureSession = AVCaptureSession()
+    //    Delegateのインスタンス生成
+    @StateObject private var photoCaptureDelegate = PhotoCaptureDelegate()
+    @State var isPreviewMode = false
+    @State var flashMode = false
     //    body定義
+    init() {
+        setupCamera()
+    }
     var body: some View {
-//        if previewImage == nil {
+//        if isPreviewMode == false {
             VStack {
                 Spacer()
-                PreviewViewUIView(captureSession: cameraModel.captureSession)
-//                    .onAppear(perform: {cameraModel.setupCamera()})
+                PreviewViewUIView(captureSession: captureSession)
                     .frame(width: UIScreen.main.bounds.width)
                     .frame(height: UIScreen.main.bounds.width/3*4)
-                    .background(Color.white)
+                    .background(Color.blue)
                 Spacer()
-                
-                ZStack{
+                ZStack {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white, lineWidth:5)
+                            .frame(width: 90, height:90)
+                        Button(action: {
+                            takePicture(flashMode: flashMode)
+                            isPreviewMode = true
+                        }) {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 80, height:80)
+                            
+                        }
+                        .buttonStyle(ShutterButtonStyle())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 110)
+                    
                     HStack{
                         Button(action: {}) {
                             Text("Cancel")
@@ -53,60 +64,114 @@ struct CameraView: View {
                         .foregroundColor(Color.white)
                     }
                     .frame(width: UIScreen.main.bounds.width)
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white, lineWidth:5)
-                            .frame(width: 90, height:90)
-                        
-                        
-                        Button(action: {
-                            cameraModel.takePicture(flashMode: flashMode,delegate:  photoCaptureDelegate)
-                            previewImage = photoCaptureDelegate.imageForPreview
-                        }) {
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 80, height:80)
-                            
-                        }
-                        .buttonStyle(ShutterButtonStyle())
-                        
-                        
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 110)
                 }
+                //                Button(action: {
+                //                    takePicture()
+                //                }, label: { Text("Button") })
+                
                 Spacer()
-//                if let image = previewImage {
-//                    Image(uiImage: image)
-//                }
+                
             }
             .background(Color.gray)
 //        }
 //        else {
-            CapturedImagePreviewView(previewImage: $previewImage, isPreviewPreview: $isPreviewPreview)
-//        }
-    }
-    
-    struct CapturedImagePreviewView: View {
-        @Binding var previewImage: UIImage?
-        @Binding var isPreviewPreview: Bool
-        
-        var body: some View {
             VStack {
-                if let image = previewImage {
+                if let image = photoCaptureDelegate.imageForPreview {
                     Image(uiImage: image)
                         .resizable()
-                        .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width/3*4)
                         .scaledToFit()
                 }
                 Button(action: {
-                    isPreviewPreview.toggle()
-                    previewImage = nil
+                    isPreviewMode = false
+                    photoCaptureDelegate.imageForPreview = nil
                 }, label: {Text("Back")})
             }
-        }
+            
+//        }
     }
     
+    //    撮影関数
+    private func takePicture(flashMode: Bool) {
+        guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
+        let photoSettings = AVCapturePhotoSettings()
+        photoSettings.flashMode = .off
+        
+#if targetEnvironment(simulator)
+#else
+        guard let device = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera,
+                                                   for: AVMediaType.video, // ビデオ入力
+                                                   position: AVCaptureDevice.Position.back)
+        else{ return }
+        if device.hasFlash {
+            if device.isFlashAvailable {
+                if flashMode == true {
+                    photoSettings.flashMode = .on
+                }
+            }
+        }
+#endif
+//        DispatchQueue.global(qos: .background).async {
+            photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureDelegate)
+//        }
+    }
+    //    撮影関数で使用するDelegate
+    private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, ObservableObject {
+        @Published var imageForPreview: UIImage?
+        init(imageForPreview: UIImage? = nil) {
+            self.imageForPreview = imageForPreview
+        }
+        // 写真撮影後の処理を実装する
+        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+            // 写真が取得されたら、ここで処理を行う
+            if let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData){
+                print(image)
+                imageForPreview = image
+            }
+            else {
+                print("写真が撮れていない")
+            }
+
+        }
+    }
+    //    カメラ初期設定
+    private func setupCamera() {
+        //    シミュレータ上ではセッション設定をスキップ
+        #if targetEnvironment(simulator)
+        #else
+        captureSession.beginConfiguration()
+        connectInputsToSession()
+        connectOutputToSession()
+        captureSession.commitConfiguration()
+        DispatchQueue.global(qos: .background).async {
+            self.captureSession.startRunning()
+        }
+        #endif
+        //    Input設定
+        func connectInputsToSession() {
+            let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)
+            guard let videoDeviceInput = try? AVCaptureDeviceInput(device: videoDevice!), captureSession.canAddInput(videoDeviceInput)
+            else {
+                print("error")
+                return
+                
+            }
+            captureSession.addInput(videoDeviceInput)
+            
+        }
+        //    Output設定
+        func connectOutputToSession() {
+            let photoOutput = AVCapturePhotoOutput()
+            guard captureSession.canAddOutput(photoOutput)
+            else {
+                print("error")
+                return
+                
+            }
+            captureSession.sessionPreset = .photo
+            captureSession.addOutput(photoOutput)
+        }
+    }
+
     //    preview用画面UIView
     class PreviewView: UIView {
         override class var layerClass: AnyClass {
@@ -130,23 +195,14 @@ struct CameraView: View {
         func updateUIView(_ uiViewController:  UIViewControllerType, context: Context) {
         }
     }
-//    シャッターボタンスタイル
     struct ShutterButtonStyle: ButtonStyle {
         func makeBody(configuration: Self.Configuration) -> some View {
             configuration.label
                 .scaleEffect(configuration.isPressed ? 0.9 : 1)
         }
     }
+    
 }
-
-
-
-//struct CapturedImagePreviewView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        CapturedImagePreviewView(previewImage: CameraView().$previewImage, isPreviewPreview: CameraView().$isPreviewPreview)
-//    }
-//}
-
 
 
 struct CameraView_Previews: PreviewProvider {
