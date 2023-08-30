@@ -11,11 +11,12 @@ import AVFoundation
 struct CameraView: View {
     @Environment(\.dismiss) var dismiss
     //    カメラセッションをclassプロパティとして定義
-    let captureSession = AVCaptureSession()
+    @State var captureSession = AVCaptureSession()
     //    Delegateのインスタンス生成
     @StateObject private var photoCaptureDelegate = PhotoCaptureDelegate()
     @ObservedObject private var cameraModel = CameraModel()
     @State var flashMode = false
+    @State var isRealtimePreviewMode = true
     
     //    body定義
     init() {
@@ -25,11 +26,18 @@ struct CameraView: View {
         ZStack{
             VStack {
                 Spacer()
-                //            カメラプレビュー
-                PreviewViewUIView(captureSession: captureSession)
-                    .frame(width: UIScreen.main.bounds.width)
-                    .frame(height: UIScreen.main.bounds.width/3*4)
-                    .background(Color.white)
+                ZStack {
+                    //            カメラプレビュー
+                    PreviewViewUIView(isPreviewActive: $isRealtimePreviewMode, captureSession: captureSession)
+                        .frame(width: UIScreen.main.bounds.width)
+                        .frame(height: UIScreen.main.bounds.width/3*4)
+                        .background(Color.white)
+                    if let image = photoCaptureDelegate.imageForPreview {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                    }
+                }
                 Spacer()
                 HStack{
                     //                    キャンセルボタン
@@ -40,22 +48,31 @@ struct CameraView: View {
                     }
                     .frame(width: UIScreen.main.bounds.width/3)
                     //                    シャッターボタン
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white, lineWidth:5)
-                            .frame(width: 90, height:90)
-                        Button(action: {
-                            cameraModel.takePicture(flashMode: flashMode, captureSession: captureSession, photoCaptureDelegate: photoCaptureDelegate)
-                        }) {
+                    if isRealtimePreviewMode == true {
+                        ZStack {
                             Circle()
-                                .fill(Color.white)
-                                .frame(width: 80, height:80)
-                            
+                                .stroke(Color.white, lineWidth:5)
+                                .frame(width: 90, height:90)
+                            Button(action: {
+                                cameraModel.takePicture(flashMode: flashMode, captureSession: captureSession, photoCaptureDelegate: photoCaptureDelegate)
+                                isRealtimePreviewMode = false
+                            }) {
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 80, height:80)
+                                
+                            }
+                            .buttonStyle(ShutterButtonStyle())
                         }
-                        .buttonStyle(ShutterButtonStyle())
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 110)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 110)
+                    else {
+                        Button(action: {
+                            photoCaptureDelegate.imageForPreview = nil
+                            isRealtimePreviewMode = true
+                        }, label: {Text("Back")})
+                    }
                     //                   フラッシュボタン
                     Button(action: {flashMode.toggle()}) {
                         Image(systemName: flashMode == true ? "bolt.circle": "bolt.slash.circle")
@@ -74,16 +91,18 @@ struct CameraView: View {
             
             
             
-            if let image = photoCaptureDelegate.imageForPreview {
-                VStack {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                    Button(action: {
-                        photoCaptureDelegate.imageForPreview = nil
-                    }, label: {Text("Back")})
-                }
-            }
+//            if let image = photoCaptureDelegate.imageForPreview {
+//                VStack {
+//                    Spacer()
+//                    Image(uiImage: image)
+//                        .resizable()
+//                        .scaledToFit()
+//                    Button(action: {
+//                        photoCaptureDelegate.imageForPreview = nil
+//                    }, label: {Text("Back")})
+//                    Spacer()
+//                }
+//            }
         }
         .navigationBarBackButtonHidden(true)
     }
@@ -91,25 +110,46 @@ struct CameraView: View {
 
     //    preview用画面UIView
     class PreviewView: UIView {
+        // プレビューが一時停止されているかどうかを管理するフラグ
+        var isPreviewActive = true
         override class var layerClass: AnyClass {
             return AVCaptureVideoPreviewLayer.self
         }
         var videoPreviewLayer: AVCaptureVideoPreviewLayer {
             return layer as! AVCaptureVideoPreviewLayer
         }
+        // プレビューを一時停止するメソッド
+        func pausePreview() {
+            videoPreviewLayer.connection?.isEnabled = false
+            isPreviewActive = false
+        }
+        
+        // プレビューを再開するメソッド
+        func resumePreview() {
+            videoPreviewLayer.connection?.isEnabled = true
+            isPreviewActive = true
+        }
     }
     //    PreviewViewをUIViewからSwiftUI用Viewに変換
     struct PreviewViewUIView: UIViewRepresentable {
         typealias UIViewControllerType = PreviewView
+        @Binding var isPreviewActive: Bool
         let captureSession: AVCaptureSession
-        func makeUIView(context: Context) ->  UIViewControllerType {
+        func makeUIView(context: Context) -> UIViewControllerType {
             let previewView = PreviewView()
             previewView.videoPreviewLayer.session = captureSession
             return previewView
         }
-        func updateUIView(_ uiViewController:  UIViewControllerType, context: Context) {
+        func updateUIView(_ uiViewController: UIViewControllerType, context: Context) {
+            // プレビューの活性状態を更新
+            if isPreviewActive {
+                uiViewController.resumePreview()
+            } else {
+                uiViewController.pausePreview()
+            }
         }
     }
+
     struct ShutterButtonStyle: ButtonStyle {
         func makeBody(configuration: Self.Configuration) -> some View {
             configuration.label

@@ -24,9 +24,10 @@ struct ContentView: View {
                 .cornerRadius(30)
             }
 
-            //                .navigationDestination
         }
+
     }
+
 }
 
 struct ContentView_Previews: PreviewProvider {
