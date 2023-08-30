@@ -9,6 +9,7 @@ import SwiftUI
 import AVFoundation
 //    Viewの定義
 struct CameraView: View {
+    @Environment(\.dismiss) var dismiss
     //    カメラセッションをclassプロパティとして定義
     let captureSession = AVCaptureSession()
     //    Delegateのインスタンス生成
@@ -32,7 +33,7 @@ struct CameraView: View {
                 Spacer()
                 HStack{
                     //                    キャンセルボタン
-                    Button(action: {}) {
+                    Button(action: {dismiss()}) {
                         Text("Cancel")
                             .foregroundColor(Color.white)
                             .font(.title)
@@ -72,8 +73,9 @@ struct CameraView: View {
             .background(Color.gray)
             
             
-            VStack {
-                if let image = photoCaptureDelegate.imageForPreview {
+            
+            if let image = photoCaptureDelegate.imageForPreview {
+                VStack {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
@@ -81,9 +83,9 @@ struct CameraView: View {
                         photoCaptureDelegate.imageForPreview = nil
                     }, label: {Text("Back")})
                 }
-
             }
         }
+        .navigationBarBackButtonHidden(true)
     }
 
 
@@ -103,8 +105,6 @@ struct CameraView: View {
         func makeUIView(context: Context) ->  UIViewControllerType {
             let previewView = PreviewView()
             previewView.videoPreviewLayer.session = captureSession
-//            previewView.videoPreviewLayer.connection?.videoOrientation = .portrait
-//            previewView.videoPreviewLayer.videoGravity = .resizeAspect
             return previewView
         }
         func updateUIView(_ uiViewController:  UIViewControllerType, context: Context) {

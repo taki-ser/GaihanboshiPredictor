@@ -9,7 +9,23 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        CameraView()
+        NavigationStack {
+            //            CameraView()
+            NavigationLink(destination: CameraView()) {
+                VStack {
+                    Image(systemName: "camera.fill")
+                        .font(.largeTitle)
+                    Text("撮影開始")
+                        .bold()
+                }
+                .frame(width: 200, height: 100)
+                .background(Color.gray)
+                .foregroundColor(Color.white)
+                .cornerRadius(30)
+            }
+
+            //                .navigationDestination
+        }
     }
 }
 
