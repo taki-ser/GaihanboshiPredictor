@@ -13,29 +13,38 @@ struct CameraView: View {
     let captureSession = AVCaptureSession()
     //    Delegateのインスタンス生成
     @StateObject private var photoCaptureDelegate = PhotoCaptureDelegate()
-    @State var isPreviewMode = false
+    @ObservedObject private var cameraModel = CameraModel()
     @State var flashMode = false
+    
     //    body定義
     init() {
-        setupCamera()
+        cameraModel.setupCamera(captureSession: captureSession)
     }
     var body: some View {
-//        if isPreviewMode == false {
+        ZStack{
             VStack {
                 Spacer()
+                //            カメラプレビュー
                 PreviewViewUIView(captureSession: captureSession)
                     .frame(width: UIScreen.main.bounds.width)
                     .frame(height: UIScreen.main.bounds.width/3*4)
-                    .background(Color.blue)
+                    .background(Color.white)
                 Spacer()
-                ZStack {
+                HStack{
+                    //                    キャンセルボタン
+                    Button(action: {}) {
+                        Text("Cancel")
+                            .foregroundColor(Color.white)
+                            .font(.title)
+                    }
+                    .frame(width: UIScreen.main.bounds.width/3)
+                    //                    シャッターボタン
                     ZStack {
                         Circle()
                             .stroke(Color.white, lineWidth:5)
                             .frame(width: 90, height:90)
                         Button(action: {
-                            takePicture(flashMode: flashMode)
-                            isPreviewMode = true
+                            cameraModel.takePicture(flashMode: flashMode, captureSession: captureSession, photoCaptureDelegate: photoCaptureDelegate)
                         }) {
                             Circle()
                                 .fill(Color.white)
@@ -46,131 +55,37 @@ struct CameraView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: 110)
-                    
-                    HStack{
-                        Button(action: {}) {
-                            Text("Cancel")
-                                .foregroundColor(Color.white)
-                                .font(.title)
-                        }
-                        .frame(width: UIScreen.main.bounds.width/3)
-                        Spacer()
-                        Button(action: {flashMode.toggle()}) {
-                            Image(systemName: flashMode == true ? "bolt.circle": "bolt.slash.circle")
-                                .font(.title)
-                            
-                        }
-                        .frame(width: UIScreen.main.bounds.width/3)
-                        .foregroundColor(Color.white)
+                    //                   フラッシュボタン
+                    Button(action: {flashMode.toggle()}) {
+                        Image(systemName: flashMode == true ? "bolt.circle": "bolt.slash.circle")
+                            .font(.title)
+                        
                     }
-                    .frame(width: UIScreen.main.bounds.width)
+                    .frame(width: UIScreen.main.bounds.width/3)
+                    .foregroundColor(Color.white)
                 }
-                //                Button(action: {
-                //                    takePicture()
-                //                }, label: { Text("Button") })
+                .frame(width: UIScreen.main.bounds.width)
                 
                 Spacer()
                 
             }
             .background(Color.gray)
-//        }
-//        else {
+            
+            
             VStack {
                 if let image = photoCaptureDelegate.imageForPreview {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
+                    Button(action: {
+                        photoCaptureDelegate.imageForPreview = nil
+                    }, label: {Text("Back")})
                 }
-                Button(action: {
-                    isPreviewMode = false
-                    photoCaptureDelegate.imageForPreview = nil
-                }, label: {Text("Back")})
-            }
-            
-//        }
-    }
-    
-    //    撮影関数
-    private func takePicture(flashMode: Bool) {
-        guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
-        let photoSettings = AVCapturePhotoSettings()
-        photoSettings.flashMode = .off
-        
-#if targetEnvironment(simulator)
-#else
-        guard let device = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera,
-                                                   for: AVMediaType.video, // ビデオ入力
-                                                   position: AVCaptureDevice.Position.back)
-        else{ return }
-        if device.hasFlash {
-            if device.isFlashAvailable {
-                if flashMode == true {
-                    photoSettings.flashMode = .on
-                }
-            }
-        }
-#endif
-//        DispatchQueue.global(qos: .background).async {
-            photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureDelegate)
-//        }
-    }
-    //    撮影関数で使用するDelegate
-    private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, ObservableObject {
-        @Published var imageForPreview: UIImage?
-        init(imageForPreview: UIImage? = nil) {
-            self.imageForPreview = imageForPreview
-        }
-        // 写真撮影後の処理を実装する
-        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-            // 写真が取得されたら、ここで処理を行う
-            if let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData){
-                print(image)
-                imageForPreview = image
-            }
-            else {
-                print("写真が撮れていない")
-            }
 
+            }
         }
     }
-    //    カメラ初期設定
-    private func setupCamera() {
-        //    シミュレータ上ではセッション設定をスキップ
-        #if targetEnvironment(simulator)
-        #else
-        captureSession.beginConfiguration()
-        connectInputsToSession()
-        connectOutputToSession()
-        captureSession.commitConfiguration()
-        DispatchQueue.global(qos: .background).async {
-            self.captureSession.startRunning()
-        }
-        #endif
-        //    Input設定
-        func connectInputsToSession() {
-            let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)
-            guard let videoDeviceInput = try? AVCaptureDeviceInput(device: videoDevice!), captureSession.canAddInput(videoDeviceInput)
-            else {
-                print("error")
-                return
-                
-            }
-            captureSession.addInput(videoDeviceInput)
-            
-        }
-        //    Output設定
-        func connectOutputToSession() {
-            let photoOutput = AVCapturePhotoOutput()
-            guard captureSession.canAddOutput(photoOutput)
-            else {
-                print("error")
-                return
-                
-            }
-            captureSession.sessionPreset = .photo
-            captureSession.addOutput(photoOutput)
-        }
-    }
+
 
     //    preview用画面UIView
     class PreviewView: UIView {
@@ -202,6 +117,26 @@ struct CameraView: View {
         }
     }
     
+}
+
+//    撮影関数で使用するDelegate
+class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, ObservableObject {
+    @Published var imageForPreview: UIImage?
+    init(imageForPreview: UIImage? = nil) {
+        self.imageForPreview = imageForPreview
+    }
+    // 写真撮影後の処理を実装する
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        // 写真が取得されたら、ここで処理を行う
+        if let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData){
+            print(image)
+            imageForPreview = image
+        }
+        else {
+            print("写真が撮れていない")
+        }
+
+    }
 }
 
 
