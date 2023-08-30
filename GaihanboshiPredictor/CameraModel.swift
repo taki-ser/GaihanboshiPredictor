@@ -21,7 +21,6 @@ class CameraModel: ObservableObject {
         }
         photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureDelegate)
     }
-
     //    カメラ初期設定
     func setupCamera(captureSession: AVCaptureSession) {
         //    シミュレータ上ではセッション設定をスキップ

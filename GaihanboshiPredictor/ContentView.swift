@@ -10,7 +10,6 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         NavigationStack {
-            Spacer(minLength: 50)
             NavigationLink(destination: LectureView()) {
                 VStack {
                     Spacer()
@@ -25,7 +24,7 @@ struct ContentView: View {
                 .foregroundColor(Color.white)
                 .cornerRadius(30)
             }
-            Spacer(minLength: 50)
+            Spacer(minLength: 30)
             NavigationLink(destination: CameraView()) {
                 VStack {
                     Spacer()
@@ -40,18 +39,12 @@ struct ContentView: View {
                 .foregroundColor(Color.white)
                 .cornerRadius(30)
             }
-            Spacer(minLength: 50)
         }
 
     }
 
 }
 
-struct LectureView: View {
-    var body: some View {
-        Text("this is Lecture View")
-    }
-}
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {

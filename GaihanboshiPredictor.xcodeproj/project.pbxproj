@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		523AFAAC2A9F3CE9009D61DA /* LectureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523AFAAB2A9F3CE9009D61DA /* LectureView.swift */; };
+		523AFAAE2A9F3D1E009D61DA /* PredictView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523AFAAD2A9F3D1E009D61DA /* PredictView.swift */; };
 		52803F212A9B0B50000BA6B0 /* GaihanboshiPredictorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52803F202A9B0B50000BA6B0 /* GaihanboshiPredictorApp.swift */; };
 		52803F232A9B0B50000BA6B0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52803F222A9B0B50000BA6B0 /* ContentView.swift */; };
 		52803F252A9B0B51000BA6B0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 52803F242A9B0B51000BA6B0 /* Assets.xcassets */; };
@@ -16,6 +18,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		523AFAAB2A9F3CE9009D61DA /* LectureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureView.swift; sourceTree = "<group>"; };
+		523AFAAD2A9F3D1E009D61DA /* PredictView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictView.swift; sourceTree = "<group>"; };
 		52803F1D2A9B0B50000BA6B0 /* GaihanboshiPredictor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GaihanboshiPredictor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		52803F202A9B0B50000BA6B0 /* GaihanboshiPredictorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaihanboshiPredictorApp.swift; sourceTree = "<group>"; };
 		52803F222A9B0B50000BA6B0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -59,6 +63,8 @@
 				52803F222A9B0B50000BA6B0 /* ContentView.swift */,
 				52803F2E2A9B0B67000BA6B0 /* CameraView.swift */,
 				529DE6E42A9B49E500A71C42 /* CameraModel.swift */,
+				523AFAAB2A9F3CE9009D61DA /* LectureView.swift */,
+				523AFAAD2A9F3D1E009D61DA /* PredictView.swift */,
 				52803F242A9B0B51000BA6B0 /* Assets.xcassets */,
 				52803F262A9B0B51000BA6B0 /* Preview Content */,
 			);
@@ -143,9 +149,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				523AFAAE2A9F3D1E009D61DA /* PredictView.swift in Sources */,
 				52803F2F2A9B0B67000BA6B0 /* CameraView.swift in Sources */,
 				52803F232A9B0B50000BA6B0 /* ContentView.swift in Sources */,
 				529DE6E52A9B49E500A71C42 /* CameraModel.swift in Sources */,
+				523AFAAC2A9F3CE9009D61DA /* LectureView.swift in Sources */,
 				52803F212A9B0B50000BA6B0 /* GaihanboshiPredictorApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

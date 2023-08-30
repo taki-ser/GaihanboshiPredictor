@@ -13,7 +13,7 @@ struct CameraView: View {
     //    カメラセッションをclassプロパティとして定義
     @State var captureSession = AVCaptureSession()
     //    Delegateのインスタンス生成
-    @StateObject private var photoCaptureDelegate = PhotoCaptureDelegate()
+    @StateObject var photoCaptureDelegate = PhotoCaptureDelegate()
     @ObservedObject private var cameraModel = CameraModel()
     @State var flashMode = false
     @State var isCaptured = true
@@ -23,122 +23,105 @@ struct CameraView: View {
         cameraModel.setupCamera(captureSession: captureSession)
     }
     var body: some View {
-        ZStack{
-            VStack {
-                Spacer()
-                ZStack {
-                    //            カメラプレビュー
-                    PreviewViewUIView(captureSession: captureSession)
-                        .frame(width: UIScreen.main.bounds.width)
-                        .frame(height: UIScreen.main.bounds.width/3*4)
-                        .background(Color.white)
-                    if isCaptured == false {
-                        Rectangle()
-                            .fill(Color.black)
+        NavigationStack {
+            ZStack{
+                VStack {
+                    Spacer()
+                    ZStack {
+                        //            カメラプレビュー
+                        PreviewViewUIView(captureSession: captureSession)
                             .frame(width: UIScreen.main.bounds.width)
                             .frame(height: UIScreen.main.bounds.width/3*4)
-                            .animation(.spring(response: 0.5,
-                                               dampingFraction: 0.5, blendDuration: 0), value: isCaptured)
-                    }
-                    if let image = photoCaptureDelegate.imageForPreview {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                    }
-                }
-                Spacer()
-                if photoCaptureDelegate.imageForPreview == nil {
-                    HStack{
-                        
-                        //                    キャンセルボタン
-                        Button(action: {dismiss()}) {
-                            Text("キャンセル")
-                                .foregroundColor(Color.white)
-                                .font(.title2)
+                            .background(Color.white)
+                        if isCaptured == false {
+                            Rectangle()
+                                .fill(Color.black)
+                                .frame(width: UIScreen.main.bounds.width)
+                                .frame(height: UIScreen.main.bounds.width/3*4)
+                                .animation(.spring(response: 0.5,
+                                                   dampingFraction: 0.5, blendDuration: 0), value: isCaptured)
                         }
-                        .frame(width: UIScreen.main.bounds.width/3)
-                        .disabled(!isCaptured)
-                        //                    シャッターボタン
-                        
-                        ZStack {
-                            Circle()
-                                .stroke(Color.white, lineWidth:5)
-                                .frame(width: 90, height:90)
-                            Button(action: {
-                                cameraModel.takePicture(flashMode: flashMode, captureSession: captureSession, photoCaptureDelegate: photoCaptureDelegate)
-                                isCaptured = false
-                            }) {
-                                Circle()
-                                    .fill(Color.white)
-                                    .frame(width: 80, height:80)
-                                
+                        if let image = photoCaptureDelegate.imageForPreview {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    }
+                    Spacer()
+                    if photoCaptureDelegate.imageForPreview == nil {
+                        HStack{
+                            
+                            //                    キャンセルボタン
+                            Button(action: {dismiss()}) {
+                                Text("キャンセル")
+                                    .foregroundColor(Color.white)
+                                    .font(.title2)
                             }
-                            .buttonStyle(ShutterButtonStyle())
+                            .frame(width: UIScreen.main.bounds.width/3)
+                            .disabled(!isCaptured)
+                            //                    シャッターボタン
+                            
+                            ZStack {
+                                Circle()
+                                    .stroke(Color.white, lineWidth:5)
+                                    .frame(width: 90, height:90)
+                                Button(action: {
+                                    cameraModel.takePicture(flashMode: flashMode, captureSession: captureSession, photoCaptureDelegate: photoCaptureDelegate)
+                                    isCaptured = false
+                                }) {
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 80, height:80)
+                                    
+                                }
+                                .buttonStyle(ShutterButtonStyle())
+                            }
+                            .disabled(!isCaptured)
+                            //                   フラッシュボタン
+                            Button(action: {flashMode.toggle()}) {
+                                Image(systemName: flashMode == true ? "bolt.circle": "bolt.slash.circle")
+                                    .font(.largeTitle)
+                            }
+                            .frame(width: UIScreen.main.bounds.width/3)
+                            .foregroundColor(Color.white)
+                            .disabled(!cameraModel.isFlashAvailable)
+                            .disabled(!isCaptured)
                         }
-                        .disabled(!isCaptured)
-                        //                   フラッシュボタン
-                        Button(action: {flashMode.toggle()}) {
-                            Image(systemName: flashMode == true ? "bolt.circle": "bolt.slash.circle")
-                                .font(.largeTitle)
+                        .frame(width: UIScreen.main.bounds.width)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 110)
+                    }
+                    else {
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                photoCaptureDelegate.imageForPreview = nil
+                                isCaptured = true
+                            }, label: {Text("再撮影")})
+                            .padding()
+                            .font(.title)
+                            .foregroundColor(Color.white)
+                            Spacer()
+                            NavigationLink(destination: PredictView()){
+                                Text("次へ")
+                                .padding()
+                                .font(.title)
+                                .foregroundColor(Color.white)
+                            }
+                            Spacer()
                         }
-                        .frame(width: UIScreen.main.bounds.width/3)
-                        .foregroundColor(Color.white)
-                        .disabled(!cameraModel.isFlashAvailable)
-                        .disabled(!isCaptured)
+                        .frame(width: UIScreen.main.bounds.width)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 110)
                     }
-                    .frame(width: UIScreen.main.bounds.width)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 110)
+                    
+                    Spacer()
+                    
                 }
-                else {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            photoCaptureDelegate.imageForPreview = nil
-                            isCaptured = true
-                        }, label: {Text("再撮影")})
-                        .padding()
-                        .font(.title)
-                        .foregroundColor(Color.white)
-//                        .background(Color.blue)
-//                        .cornerRadius(20)
-                        Spacer()
-                        Button(action: {
-                        }, label: {Text("次へ")})
-                        .padding()
-                        .font(.title)
-                        .foregroundColor(Color.white)
-//                        .background(Color.blue)
-//                        .cornerRadius(20)
-//                        Rectangle()
-                        Spacer()
-                    }
-                    .frame(width: UIScreen.main.bounds.width)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 110)
-                }
-                
-                Spacer()
-                
+                .background(Color.black)
             }
-            .background(Color.black)
-            
-            
-            
-//            if let image = photoCaptureDelegate.imageForPreview {
-//                VStack {
-//                    Spacer()
-//                    Image(uiImage: image)
-//                        .resizable()
-//                        .scaledToFit()
-//                    Button(action: {
-//                        photoCaptureDelegate.imageForPreview = nil
-//                    }, label: {Text("Back")})
-//                    Spacer()
-//                }
-//            }
+            .navigationBarBackButtonHidden(true)
         }
-        .navigationBarBackButtonHidden(true)
     }
 
 
