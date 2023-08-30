@@ -16,7 +16,7 @@ struct CameraView: View {
     @StateObject private var photoCaptureDelegate = PhotoCaptureDelegate()
     @ObservedObject private var cameraModel = CameraModel()
     @State var flashMode = false
-    @State var isRealtimePreviewMode = true
+    @State var isCaptured = true
     
     //    body定義
     init() {
@@ -28,15 +28,17 @@ struct CameraView: View {
                 Spacer()
                 ZStack {
                     //            カメラプレビュー
-                    PreviewViewUIView(isPreviewActive: $isRealtimePreviewMode, captureSession: captureSession)
+                    PreviewViewUIView(captureSession: captureSession)
                         .frame(width: UIScreen.main.bounds.width)
                         .frame(height: UIScreen.main.bounds.width/3*4)
                         .background(Color.white)
-                    if isRealtimePreviewMode == false {
+                    if isCaptured == false {
                         Rectangle()
                             .fill(Color.black)
                             .frame(width: UIScreen.main.bounds.width)
                             .frame(height: UIScreen.main.bounds.width/3*4)
+                            .animation(.spring(response: 0.5,
+                                               dampingFraction: 0.5, blendDuration: 0), value: isCaptured)
                     }
                     if let image = photoCaptureDelegate.imageForPreview {
                         Image(uiImage: image)
@@ -45,23 +47,26 @@ struct CameraView: View {
                     }
                 }
                 Spacer()
-                HStack{
-                    //                    キャンセルボタン
-                    Button(action: {dismiss()}) {
-                        Text("Cancel")
-                            .foregroundColor(Color.white)
-                            .font(.title)
-                    }
-                    .frame(width: UIScreen.main.bounds.width/3)
-                    //                    シャッターボタン
-                    if isRealtimePreviewMode == true {
+                if photoCaptureDelegate.imageForPreview == nil {
+                    HStack{
+                        
+                        //                    キャンセルボタン
+                        Button(action: {dismiss()}) {
+                            Text("キャンセル")
+                                .foregroundColor(Color.white)
+                                .font(.title2)
+                        }
+                        .frame(width: UIScreen.main.bounds.width/3)
+                        .disabled(!isCaptured)
+                        //                    シャッターボタン
+                        
                         ZStack {
                             Circle()
                                 .stroke(Color.white, lineWidth:5)
                                 .frame(width: 90, height:90)
                             Button(action: {
                                 cameraModel.takePicture(flashMode: flashMode, captureSession: captureSession, photoCaptureDelegate: photoCaptureDelegate)
-                                isRealtimePreviewMode = false
+                                isCaptured = false
                             }) {
                                 Circle()
                                     .fill(Color.white)
@@ -70,32 +75,53 @@ struct CameraView: View {
                             }
                             .buttonStyle(ShutterButtonStyle())
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 110)
+                        .disabled(!isCaptured)
+                        //                   フラッシュボタン
+                        Button(action: {flashMode.toggle()}) {
+                            Image(systemName: flashMode == true ? "bolt.circle": "bolt.slash.circle")
+                                .font(.largeTitle)
+                        }
+                        .frame(width: UIScreen.main.bounds.width/3)
+                        .foregroundColor(Color.white)
+                        .disabled(!cameraModel.isFlashAvailable)
+                        .disabled(!isCaptured)
                     }
-                    else {
+                    .frame(width: UIScreen.main.bounds.width)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 110)
+                }
+                else {
+                    HStack {
+                        Spacer()
                         Button(action: {
                             photoCaptureDelegate.imageForPreview = nil
-                            isRealtimePreviewMode = true
-                        }, label: {Text("Back")})
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 110)
+                            isCaptured = true
+                        }, label: {Text("再撮影")})
+                        .padding()
+                        .font(.title)
+                        .foregroundColor(Color.white)
+//                        .background(Color.blue)
+//                        .cornerRadius(20)
+                        Spacer()
+                        Button(action: {
+                        }, label: {Text("次へ")})
+                        .padding()
+                        .font(.title)
+                        .foregroundColor(Color.white)
+//                        .background(Color.blue)
+//                        .cornerRadius(20)
+//                        Rectangle()
+                        Spacer()
                     }
-                    //                   フラッシュボタン
-                    Button(action: {flashMode.toggle()}) {
-                        Image(systemName: flashMode == true ? "bolt.circle": "bolt.slash.circle")
-                            .font(.title)
-                        
-                    }
-                    .frame(width: UIScreen.main.bounds.width/3)
-                    .foregroundColor(Color.white)
+                    .frame(width: UIScreen.main.bounds.width)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 110)
                 }
-                .frame(width: UIScreen.main.bounds.width)
                 
                 Spacer()
                 
             }
-            .background(Color.gray)
+            .background(Color.black)
             
             
             
@@ -118,30 +144,16 @@ struct CameraView: View {
 
     //    preview用画面UIView
     class PreviewView: UIView {
-        // プレビューが一時停止されているかどうかを管理するフラグ
-        var isPreviewActive = true
         override class var layerClass: AnyClass {
             return AVCaptureVideoPreviewLayer.self
         }
         var videoPreviewLayer: AVCaptureVideoPreviewLayer {
             return layer as! AVCaptureVideoPreviewLayer
         }
-        // プレビューを一時停止するメソッド
-        func pausePreview() {
-            videoPreviewLayer.connection?.isEnabled = false
-            isPreviewActive = false
-        }
-        
-        // プレビューを再開するメソッド
-        func resumePreview() {
-            videoPreviewLayer.connection?.isEnabled = true
-            isPreviewActive = true
-        }
     }
     //    PreviewViewをUIViewからSwiftUI用Viewに変換
     struct PreviewViewUIView: UIViewRepresentable {
         typealias UIViewControllerType = PreviewView
-        @Binding var isPreviewActive: Bool
         let captureSession: AVCaptureSession
         func makeUIView(context: Context) -> UIViewControllerType {
             let previewView = PreviewView()
@@ -149,12 +161,6 @@ struct CameraView: View {
             return previewView
         }
         func updateUIView(_ uiViewController: UIViewControllerType, context: Context) {
-            // プレビューの活性状態を更新
-//            if isPreviewActive {
-//                uiViewController.resumePreview()
-//            } else {
-//                uiViewController.pausePreview()
-//            }
         }
     }
 

@@ -10,24 +10,47 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         NavigationStack {
-            //            CameraView()
-            NavigationLink(destination: CameraView()) {
+            Spacer(minLength: 50)
+            NavigationLink(destination: LectureView()) {
                 VStack {
-                    Image(systemName: "camera.fill")
+                    Spacer()
+                    Image(systemName: "hand.tap")
                         .font(.largeTitle)
-                    Text("撮影開始")
+                    Text("撮影方法を確認する")
                         .bold()
+                    Spacer()
                 }
-                .frame(width: 200, height: 100)
+                .frame(width: UIScreen.main.bounds.width-30)
                 .background(Color.gray)
                 .foregroundColor(Color.white)
                 .cornerRadius(30)
             }
-
+            Spacer(minLength: 50)
+            NavigationLink(destination: CameraView()) {
+                VStack {
+                    Spacer()
+                    Image(systemName: "camera.fill")
+                        .font(.largeTitle)
+                    Text("撮影開始")
+                        .bold()
+                    Spacer()
+                }
+                .frame(width: UIScreen.main.bounds.width-30)
+                .background(Color.gray)
+                .foregroundColor(Color.white)
+                .cornerRadius(30)
+            }
+            Spacer(minLength: 50)
         }
 
     }
 
+}
+
+struct LectureView: View {
+    var body: some View {
+        Text("this is Lecture View")
+    }
 }
 
 struct ContentView_Previews: PreviewProvider {

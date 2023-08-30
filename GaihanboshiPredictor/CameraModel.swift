@@ -7,32 +7,19 @@
 import AVFoundation
 
 class CameraModel: ObservableObject {
+    @Published var isFlashAvailable = false
+    let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)
+    let photoOutput = AVCapturePhotoOutput()
     //    撮影関数
     func takePicture(flashMode: Bool, captureSession: AVCaptureSession, photoCaptureDelegate: AVCapturePhotoCaptureDelegate) {
-        guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
         let photoSettings = AVCapturePhotoSettings()
         photoSettings.flashMode = .off
         
-    #if targetEnvironment(simulator)
-    #else
-        guard let device = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera,
-               for: AVMediaType.video, // ビデオ入力
-               position: AVCaptureDevice.Position.back)
-        else{
-            print("default deviceが使えません")
-            return
+        
+        if flashMode == true && isFlashAvailable == true {
+            photoSettings.flashMode = .on
         }
-        if device.hasFlash {
-            if device.isFlashAvailable {
-                if flashMode == true {
-                    photoSettings.flashMode = .on
-                }
-            }
-        }
-    #endif
-    //        DispatchQueue.global(qos: .background).async {
-            photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureDelegate)
-    //        }
+        photoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureDelegate)
     }
 
     //    カメラ初期設定
@@ -50,8 +37,15 @@ class CameraModel: ObservableObject {
     #endif
         //    Input設定
         func connectInputsToSession() {
-            let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)
-            guard let videoDeviceInput = try? AVCaptureDeviceInput(device: videoDevice!), captureSession.canAddInput(videoDeviceInput)
+            guard let device = videoDevice else {
+                print("カメラが使用できません")
+                return
+                
+            }
+            if device.hasFlash && device.isFlashAvailable {
+                isFlashAvailable = true
+            }
+            guard let videoDeviceInput = try? AVCaptureDeviceInput(device: device), captureSession.canAddInput(videoDeviceInput)
             else {
                 print("error")
                 return
@@ -62,7 +56,7 @@ class CameraModel: ObservableObject {
         }
         //    Output設定
         func connectOutputToSession() {
-            let photoOutput = AVCapturePhotoOutput()
+            
             guard captureSession.canAddOutput(photoOutput)
             else {
                 print("error")
