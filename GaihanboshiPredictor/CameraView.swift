@@ -32,6 +32,12 @@ struct CameraView: View {
                         .frame(width: UIScreen.main.bounds.width)
                         .frame(height: UIScreen.main.bounds.width/3*4)
                         .background(Color.white)
+                    if isRealtimePreviewMode == false {
+                        Rectangle()
+                            .fill(Color.black)
+                            .frame(width: UIScreen.main.bounds.width)
+                            .frame(height: UIScreen.main.bounds.width/3*4)
+                    }
                     if let image = photoCaptureDelegate.imageForPreview {
                         Image(uiImage: image)
                             .resizable()
@@ -72,6 +78,8 @@ struct CameraView: View {
                             photoCaptureDelegate.imageForPreview = nil
                             isRealtimePreviewMode = true
                         }, label: {Text("Back")})
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 110)
                     }
                     //                   フラッシュボタン
                     Button(action: {flashMode.toggle()}) {
@@ -142,11 +150,11 @@ struct CameraView: View {
         }
         func updateUIView(_ uiViewController: UIViewControllerType, context: Context) {
             // プレビューの活性状態を更新
-            if isPreviewActive {
-                uiViewController.resumePreview()
-            } else {
-                uiViewController.pausePreview()
-            }
+//            if isPreviewActive {
+//                uiViewController.resumePreview()
+//            } else {
+//                uiViewController.pausePreview()
+//            }
         }
     }
 
